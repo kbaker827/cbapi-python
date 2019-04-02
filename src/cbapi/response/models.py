@@ -1015,7 +1015,7 @@ class WhitelistedIPs(MutableBaseModel):
 
     @classmethod
     def __query_implementation(cls,cb):
-        return SimpleQuery(cls,cb)
+        return BaseQuery(cls,cb)
 
     def __init__(self, *args, **kwargs):
         super(WhitelistedIPs, self).__init__(*args, **kwargs)
