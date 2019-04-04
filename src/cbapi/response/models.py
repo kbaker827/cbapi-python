@@ -1007,7 +1007,34 @@ class User(MutableBaseModel, CreatableModelMixin):
                 new_teams.append(team)
 
         self.teams = new_teams
+class IPQuery(SimpleQuery):
+    valid_field_names = ['ips']
+    _multiple_where_clauses_accepted = False
 
+    def __init__(self, cls, cb):
+        super(IPQuery, self).__init__(cls, cb)
+
+    def where(self, new_query):
+        nq = super(IPQuery, self).where(new_query)
+        return nq
+
+    @property
+    def results(self):
+        if not self._full_init:
+            #ZE CB-15681 - REMOVE BLOCK WHEN BUG IS FIXED
+            try:
+                full_results = self._cb.get_object(self._urlobject, query_parameters=convert_query_params(self._query))
+            except ServerError as se:
+                full_results = False
+            #ZE CB-15681 - REMOVE BLOCK WHEN BUG IS FIXED
+            if not full_results:
+                self._results = []
+            else:
+                self._results = [self._doc_class.new_object(self._cb, it, full_doc=True) for it in full_results]
+            self._results = self._sort(self._results)
+            self._full_init = True
+
+        return self._results
 
 class WhitelistedIPs(MutableBaseModel):
     swagger_meta_file = "response/models/whitelist.yaml"
@@ -1015,7 +1042,7 @@ class WhitelistedIPs(MutableBaseModel):
 
     @classmethod
     def __query_implementation(cls,cb):
-        return BaseQuery(cls,cb)
+        return IPQuery(cls,cb)
 
     def __init__(self, *args, **kwargs):
         super(WhitelistedIPs, self).__init__(*args, **kwargs)
